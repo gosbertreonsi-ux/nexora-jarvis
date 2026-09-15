@@ -1,6 +1,7 @@
 {
   "name": "nexora-jarvis",
   "version": "1.0.0",
+  "type": "commonjs",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -9,9 +10,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "@fastify/cors": "^11.3.0",
+    "@fastify/formbody": "^9.0.0",
     "@fastify/websocket": "^11.3.0",
     "dotenv": "^17.4.2",
     "fastify": "^5.12.4",
@@ -20,7 +21,7 @@
   "devDependencies": {
     "@types/node": "^26.5.1",
     "@types/ws": "^8.18.1",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   }
 }
