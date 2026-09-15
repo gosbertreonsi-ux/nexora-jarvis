@@ -6,18 +6,16 @@ import os from 'os';
 
 const fastify = Fastify({ logger: true });
 
-// ENABLES CROSS-ORIGIN ACCESS CHANNELS FOR THE FRONTEND LOGIC LAYERS
 fastify.register(fastifyCors, { origin: "*" });
 fastify.register(fastifyWebsocket);
 
-// @ts-ignore - Dynamically register form body parser modules for safety
+// @ts-ignore
 fastify.register(require('@fastify/formbody'));
 
 interface CommandPacket {
   command: string;
 }
 
-// UTILITY FUNCTION: Executes native Windows commands safely
 function executeSystemShell(cmd: string): Promise<string> {
   return new Promise((resolve, reject) => {
     exec(cmd, (error, stdout, stderr) => {
@@ -25,6 +23,21 @@ function executeSystemShell(cmd: string): Promise<string> {
       else resolve(stdout ? stdout : stderr);
     });
   });
+}
+
+// HELPER FUNCTION: Smart heuristic parser to extract search queries from casual speech
+function cleanAndExtractQuery(phrase: string): string {
+  let cleaned = phrase.toLowerCase()
+    .replace("yes,", "")
+    .replace("run the internet for me", "")
+    .replace("run the internet for", "")
+    .replace("search for", "")
+    .replace("look up", "")
+    .replace("find out about", "")
+    .replace("google", "")
+    .trim();
+  
+  return cleaned;
 }
 
 // ─── CORE REAL-TIME JARVIS COGNITIVE ROUTER ───
@@ -47,50 +60,21 @@ fastify.register(async function (fastify) {
         let responseText = "";
         let actionTriggered = "NONE";
 
-        // ─── EXTRACTIVE SEARCH PARAMETER ENGINE LAYER ───
-        if (inputPhrase.includes("search for") || inputPhrase.includes("tell me what to search")) {
-          actionTriggered = "LAUNCH_CHROME_SEARCH";
-          
-          // Isolate and extract exactly what sits after the trigger phrases
-          let searchKeyword = "";
-          if (inputPhrase.includes("search for")) {
-            searchKeyword = rawPhrase.substring(inputPhrase.indexOf("search for") + 10).trim();
-          } else {
-            searchKeyword = rawPhrase.substring(inputPhrase.indexOf("search") + 6).trim();
-          }
-
-          // If the user just said "open chrome and search", handle an empty fallback loop
-          if (!searchKeyword) {
-            responseText = "I have opened Google Chrome, Commander Lee. What specific topic shall I look up for you?";
-            await executeSystemShell('start chrome https://google.com');
-          } else {
-            responseText = `Searching Google for "${searchKeyword}" right away, Commander Lee. Initializing web query modules.`;
-            const encodedQuery = encodeURIComponent(searchKeyword);
-            await executeSystemShell(`start chrome https://google.com/search?q=${encodedQuery}`);
-          }
-        } 
-        else if (inputPhrase.includes("youtube") || inputPhrase.includes("music")) {
+        // 1. DYNAMIC SYSTEM AUTOMATION TRIGGERS
+        if (inputPhrase.includes("youtube") || inputPhrase.includes("music")) {
           actionTriggered = "LAUNCH_YOUTUBE";
-          
-          // Check if they want to play a specific band or song on YouTube
           let songQuery = "";
           if (inputPhrase.includes("play")) {
             songQuery = rawPhrase.substring(inputPhrase.indexOf("play") + 4).trim();
           }
 
           if (songQuery) {
-            responseText = `Opening YouTube and launching streaming playback array layers for "${songQuery}", sir.`;
-            const encodedSong = encodeURIComponent(songQuery);
-            await executeSystemShell(`start chrome https://youtube.com{encodedSong}`);
+            responseText = `Opening YouTube and launching streaming playback layers for "${songQuery}", sir.`;
+            await executeSystemShell(`start chrome https://youtube.com{encodeURIComponent(songQuery)}`);
           } else {
             responseText = "Understood, Commander Lee. Opening YouTube and launching low-fi audio radio streams now.";
             await executeSystemShell('start chrome https://youtube.com');
           }
-        } 
-        else if (inputPhrase.includes("chrome") || inputPhrase.includes("open google")) {
-          actionTriggered = "LAUNCH_CHROME";
-          responseText = "I have opened a clean Google Chrome browser session, Commander Lee. Standing by for instructions.";
-          await executeSystemShell('start chrome https://google.com');
         } 
         else if (inputPhrase.includes("status") || inputPhrase.includes("system")) {
           actionTriggered = "SYSTEM_READOUT";
@@ -102,7 +86,6 @@ fastify.register(async function (fastify) {
           actionTriggered = "NETWORK_PING";
           responseText = "Measuring transmission latency variables now, Commander Lee.";
           connection.send(JSON.stringify({ status: "PROCESSING", text: responseText, action: actionTriggered }));
-          
           try {
             await executeSystemShell('ping -n 3 8.8.8.8');
             responseText = "Network transit diagnostics complete. Sockets are functioning perfectly, sir.";
@@ -115,9 +98,25 @@ fastify.register(async function (fastify) {
           responseText = "Waking up your integrated code editing workspace array right away, Commander.";
           await executeSystemShell('code .');
         }
+        else if (inputPhrase.includes("explorer") || inputPhrase.includes("show files")) {
+          actionTriggered = "LAUNCH_EXPLORER";
+          responseText = "Opening native Windows file navigation systems targeting your active project path, sir.";
+          await executeSystemShell('start .');
+        }
+        // 2. FALLBACK ADAPTIVE COGNITIVE SEARCH (Catches phrases like "Yes, run the internet")
         else {
-          actionTriggered = "CONVERSATION";
-          responseText = `I have logged your voice command, Commander Lee, but it falls outside my native automation modules. You stated: "${rawPhrase}". Shall I run an internet query for this?`;
+          actionTriggered = "LAUNCH_CHROME_SEARCH";
+          const topicToSearch = cleanAndExtractQuery(rawPhrase);
+
+          if (topicToSearch && topicToSearch.length > 1) {
+            responseText = `Processing casual command context. Searching Google for "${topicToSearch}" now, Commander Lee.`;
+            await executeSystemShell(`start chrome https://google.com{encodeURIComponent(topicToSearch)}`);
+          } else {
+            // If they just said generic words with no hidden query data
+            actionTriggered = "CONVERSATION";
+            responseText = `I hear you, Commander Lee. Opening Google Chrome terminal hub for you to navigate directly.`;
+            await executeSystemShell('start chrome https://google.com');
+          }
         }
 
         // Return processed execution tokens back to the Next.js frontend panel layout
