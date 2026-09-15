@@ -51,7 +51,7 @@ async function gatherHardwareVitals() {
     const rawCharge = await executeSystemShell(batteryCmd);
     const rawStatus = await executeSystemShell(statusCmd);
     
-    const batteryPercent = rawCharge ? parseInt(rawCharge) : 85; 
+    const batteryPercent = rawCharge ? parseInt(rawCharge) : 88; 
     const isCharging = rawStatus === "2" || rawStatus === "6"; 
 
     const thermalCmd = "powershell -Command \"(Get-Counter '\\Processor(_Total)\\% Processor Time').CounterSamples.CookedValue\"";
@@ -66,7 +66,7 @@ async function gatherHardwareVitals() {
       totalMemory: (os.totalmem() / (1024 * 1024 * 1024)).toFixed(2)
     };
   } catch {
-    return { batteryPercent: 95, isCharging: false, cpuLoad: 15, freeMemory: "7.20", totalMemory: "16.00" };
+    return { batteryPercent: 98, isCharging: false, cpuLoad: 12, freeMemory: "7.80", totalMemory: "16.00" };
   }
 }
 
@@ -94,19 +94,22 @@ fastify.register(async function (fastify) {
 
     connection.on('message', async (message) => {
       try {
-        const parsedMessage = JSON.parse(message.toString());
-        
-        // CRITICAL DEFENSIVE SANITIZATION: Bypasses malformed or empty text packets
-        if (!parsedMessage || typeof parsedMessage !== 'object' || !('command' in parsedMessage) || parsedMessage.command === undefined || parsedMessage.command === null) {
-          console.log("⚠️ Bypassed unhandled packet anomaly frame context.");
-          return;
+        const rawString = message.toString().trim();
+        let rawPhrase = "";
+
+        // FLEXIBLE PARSING LAYER: Unpacks whether the data arrives as an object or raw text string
+        try {
+          const parsedMessage = JSON.parse(rawString);
+          if (parsedMessage && typeof parsedMessage === 'object' && parsedMessage.command) {
+            rawPhrase = String(parsedMessage.command).trim();
+          } else if (typeof parsedMessage === 'string') {
+            rawPhrase = parsedMessage.trim();
+          }
+        } catch {
+          rawPhrase = rawString; // Bypasses JSON serialization locks completely
         }
 
-        const packet = parsedMessage as CommandPacket;
-        const rawPhrase = String(packet.command).trim();
-        
-        if (rawPhrase.length === 0) {
-          console.log("⚠️ Bypassed blank text block stream layer.");
+        if (!rawPhrase || rawPhrase.length === 0) {
           return;
         }
 
@@ -116,7 +119,7 @@ fastify.register(async function (fastify) {
         let responseText = "";
         let actionTriggered = "NONE";
 
-        // ─── 1. CYBERSECURITY VAULT CONFIGURATIONS ───
+        // ─── 1. CYBERSECURITY VAULT CONTROL CODES ───
         if (inputPhrase.includes("lock") && (inputPhrase.includes("vault") || inputPhrase.includes("file"))) {
           actionTriggered = "VAULT_LOCK";
           if (fs.existsSync(VAULT_FOLDER)) {
@@ -139,7 +142,7 @@ fastify.register(async function (fastify) {
             await executeSystemShell(`explorer "${VAULT_FOLDER}"`);
           }
         }
-        // ─── 2. SYSTEM SHELL AUTOMATIONS ───
+        // ─── 2. NATIVE APPLICATION EXECUTION MACROS ───
         else if (inputPhrase.includes("youtube") || inputPhrase.includes("music")) {
           actionTriggered = "LAUNCH_YOUTUBE";
           let songQuery = "";
@@ -170,7 +173,7 @@ fastify.register(async function (fastify) {
           responseText = "Opening native Windows file navigation systems targeting your active project path, sir.";
           await executeSystemShell('start .');
         }
-        // ─── 3. ADAPTIVE CONVERSATIONAL INTERNET MATRIX ───
+        // ─── 3. ADAPTIVE CONVERSATIONAL SEARCH EXTRACTOR ───
         else {
           actionTriggered = "LAUNCH_CHROME_SEARCH";
           const topicToSearch = cleanAndExtractQuery(rawPhrase);
@@ -192,7 +195,7 @@ fastify.register(async function (fastify) {
         }));
 
       } catch (err) {
-        console.error("⚠️ Caught malformed data package block frame anomaly execution.");
+        console.error("⚠️ Gracefully managed a local message parsing variant.");
       }
     });
 
