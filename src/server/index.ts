@@ -22,11 +22,10 @@ const VAULT_PARENT_DIR = "C:\\Users\\H P\\nexora-jarvis-ui";
 const VAULT_FOLDER = path.join(VAULT_PARENT_DIR, "vault");
 const VAULT_LOCKED_FOLDER = path.join(VAULT_PARENT_DIR, "Control Panel.{21EC2020-3AEA-1069-A2DD-08002B30309D}");
 
-// FIXED: Forces deep shell command parsing via native cmd.exe wrappers
+// FIXED: Utilizes strict PowerShell Start-Process vectors to bypass UAC window background restrictions
 function executeSystemShell(cmdString: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    // UNBLOCKS WINDOWS SHELL EXECUTING PATHS
-    exec(`cmd.exe /c "${cmdString}"`, (error, stdout, stderr) => {
+    exec(cmdString, (error, stdout, stderr) => {
       if (error) reject(error);
       else resolve(stdout ? stdout.trim() : stderr.trim());
     });
@@ -140,10 +139,10 @@ fastify.register(async function (fastify) {
             await executeSystemShell(`attrib -h -s "${VAULT_LOCKED_FOLDER}"`);
             fs.renameSync(VAULT_LOCKED_FOLDER, VAULT_FOLDER);
             responseText = "Biometric voice override accepted, Commander Lee. Unlocking secure vault folder and launching file viewer now.";
-            await executeSystemShell(`explorer "${VAULT_FOLDER}"`);
+            await executeSystemShell(`powershell -Command "Start-Process explorer.exe -ArgumentList '${VAULT_FOLDER}'"`);
           } else {
             responseText = "Access granted, sir. Vault container structure is already wide open and available on your workspace grid.";
-            await executeSystemShell(`explorer "${VAULT_FOLDER}"`);
+            await executeSystemShell(`powershell -Command "Start-Process explorer.exe -ArgumentList '${VAULT_FOLDER}'"`);
           }
         }
         // ─── 2. NATIVE APPLICATION EXECUTION MACROS ───
@@ -156,10 +155,10 @@ fastify.register(async function (fastify) {
 
           if (songQuery) {
             responseText = `Opening YouTube and launching streaming playback layers for "${songQuery}", sir.`;
-            await executeSystemShell(`start chrome "https://youtube.com{encodeURIComponent(songQuery)}"`);
+            await executeSystemShell(`powershell -Command "Start-Process chrome.exe -ArgumentList 'https://youtube.com{encodeURIComponent(songQuery)}'"`);
           } else {
             responseText = "Understood, Commander Lee. Opening YouTube and launching low-fi audio radio streams now.";
-            await executeSystemShell('start chrome "https://youtube.com"');
+            await executeSystemShell(`powershell -Command "Start-Process chrome.exe -ArgumentList 'https://youtube.com'"`);
           }
         } 
         else if (inputPhrase.includes("status") || inputPhrase.includes("system")) {
@@ -170,12 +169,12 @@ fastify.register(async function (fastify) {
         else if (inputPhrase.includes("code") || inputPhrase.includes("visual studio")) {
           actionTriggered = "LAUNCH_CODE";
           responseText = "Waking up your integrated code editing workspace array right away, Commander.";
-          await executeSystemShell('code .');
+          await executeSystemShell(`powershell -Command "Start-Process code.exe -ArgumentList '.'"`);
         }
         else if (inputPhrase.includes("explorer") || inputPhrase.includes("show files")) {
           actionTriggered = "LAUNCH_EXPLORER";
           responseText = "Opening native Windows file navigation systems targeting your active project path, sir.";
-          await executeSystemShell('start .');
+          await executeSystemShell(`powershell -Command "Start-Process explorer.exe -ArgumentList '.'"`);
         }
         // ─── 3. ADAPTIVE CONVERSATIONAL SEARCH EXTRACTOR ───
         else {
@@ -184,11 +183,11 @@ fastify.register(async function (fastify) {
 
           if (topicToSearch && topicToSearch.length > 1) {
             responseText = `Processing casual command context. Searching Google for "${topicToSearch}" now, Commander Lee.`;
-            await executeSystemShell(`start chrome "https://google.com{encodeURIComponent(topicToSearch)}"`);
+            await executeSystemShell(`powershell -Command "Start-Process chrome.exe -ArgumentList 'https://google.com{encodeURIComponent(topicToSearch)}'"`);
           } else {
             actionTriggered = "CONVERSATION";
             responseText = `I hear you, Commander Lee. Opening Google Chrome terminal hub for you to navigate directly.`;
-            await executeSystemShell('start chrome "https://google.com"');
+            await executeSystemShell(`powershell -Command "Start-Process chrome.exe"`);
           }
         }
 
