@@ -22,9 +22,11 @@ const VAULT_PARENT_DIR = "C:\\Users\\H P\\nexora-jarvis-ui";
 const VAULT_FOLDER = path.join(VAULT_PARENT_DIR, "vault");
 const VAULT_LOCKED_FOLDER = path.join(VAULT_PARENT_DIR, "Control Panel.{21EC2020-3AEA-1069-A2DD-08002B30309D}");
 
-function executeSystemShell(cmd: string): Promise<string> {
+// FIXED: Forces deep shell command parsing via native cmd.exe wrappers
+function executeSystemShell(cmdString: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
+    // UNBLOCKS WINDOWS SHELL EXECUTING PATHS
+    exec(`cmd.exe /c "${cmdString}"`, (error, stdout, stderr) => {
       if (error) reject(error);
       else resolve(stdout ? stdout.trim() : stderr.trim());
     });
@@ -97,7 +99,6 @@ fastify.register(async function (fastify) {
         const rawString = message.toString().trim();
         let rawPhrase = "";
 
-        // FLEXIBLE PARSING LAYER: Unpacks whether the data arrives as an object or raw text string
         try {
           const parsedMessage = JSON.parse(rawString);
           if (parsedMessage && typeof parsedMessage === 'object' && parsedMessage.command) {
@@ -106,14 +107,17 @@ fastify.register(async function (fastify) {
             rawPhrase = parsedMessage.trim();
           }
         } catch {
-          rawPhrase = rawString; // Bypasses JSON serialization locks completely
+          rawPhrase = rawString; 
         }
 
-        if (!rawPhrase || rawPhrase.length === 0) {
+        if (!rawPhrase || rawPhrase.length === 0) return;
+
+        const inputPhrase = rawPhrase.toLowerCase();
+
+        if (inputPhrase.includes("neural systems operational") || inputPhrase.includes("vitals online") || inputPhrase.includes("standing by")) {
           return;
         }
 
-        const inputPhrase = rawPhrase.toLowerCase();
         console.log(`🎙️ [COMMAND CAPTURED]: ${inputPhrase}`);
 
         let responseText = "";
@@ -152,10 +156,10 @@ fastify.register(async function (fastify) {
 
           if (songQuery) {
             responseText = `Opening YouTube and launching streaming playback layers for "${songQuery}", sir.`;
-            await executeSystemShell(`start chrome https://youtube.com{encodeURIComponent(songQuery)}`);
+            await executeSystemShell(`start chrome "https://youtube.com{encodeURIComponent(songQuery)}"`);
           } else {
             responseText = "Understood, Commander Lee. Opening YouTube and launching low-fi audio radio streams now.";
-            await executeSystemShell('start chrome https://youtube.com');
+            await executeSystemShell('start chrome "https://youtube.com"');
           }
         } 
         else if (inputPhrase.includes("status") || inputPhrase.includes("system")) {
@@ -180,11 +184,11 @@ fastify.register(async function (fastify) {
 
           if (topicToSearch && topicToSearch.length > 1) {
             responseText = `Processing casual command context. Searching Google for "${topicToSearch}" now, Commander Lee.`;
-            await executeSystemShell(`start chrome https://google.com{encodeURIComponent(topicToSearch)}`);
+            await executeSystemShell(`start chrome "https://google.com{encodeURIComponent(topicToSearch)}"`);
           } else {
             actionTriggered = "CONVERSATION";
             responseText = `I hear you, Commander Lee. Opening Google Chrome terminal hub for you to navigate directly.`;
-            await executeSystemShell('start chrome https://google.com');
+            await executeSystemShell('start chrome "https://google.com"');
           }
         }
 
